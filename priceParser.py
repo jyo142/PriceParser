@@ -1,5 +1,6 @@
 import pandas as pd
 from price_parser import Price
+import argparse
 
 def read_categories_price(csv_name):
     df = pd.read_csv(csv_name)
@@ -15,10 +16,9 @@ column_mapping = {
     "T-General Mercahnt": "T General Mercahnt",
     "Tax": "Taxable"
 }
-def edit_spreadsheet(categories_price, spreadsheet_name):
+def edit_spreadsheet(categories_price, spreadsheet_name, row_number):
     df = pd.read_csv(spreadsheet_name)
 
-    # Iterate through the name_price_list and update values in row 23
     for item in categories_price:
         name = item["name"]
         name_upper = name.upper()
@@ -40,7 +40,7 @@ def edit_spreadsheet(categories_price, spreadsheet_name):
             column_name = matching_columns[0]  # Take the first match (if multiple matches, but unlikely)
             price_parsed = Price.fromstring(price)
             if price_parsed.amount is not None:
-                df.at[22, column_name] = float(price_parsed.amount) # row 23 in CSV corresponds to index 22 in pandas
+                df.at[row_number - 1, column_name] = float(price_parsed.amount)
                 print(f"Set price for {name} to {price} in column {column_name}")
             else:
                 print("Could not parse price.")
@@ -51,13 +51,11 @@ def edit_spreadsheet(categories_price, spreadsheet_name):
     df.to_csv(spreadsheet_name, index=False)
 
 if __name__ == "__main__":
-    # Replace this with your PDF file path
-    # pdf_file_path = "test.pdf"
-    # extracted_text = extract_text_from_pdf(pdf_file_path)
-    
-    # # Print or save to a text file
-    # print(extracted_text)
-    # with open("output.txt", "w", encoding="utf-8") as f:
-    #     f.write(extracted_text)
-    categories_price = read_categories_price(csv_name="sales_data.csv")
-    edit_spreadsheet(categories_price=categories_price, spreadsheet_name="MAR(Sheet1).csv")
+    parser = argparse.ArgumentParser(description="Script to parse prices in one csv and add it to another")
+    parser.add_argument("source", type=str, help="CSV file to parse data from")
+    parser.add_argument("dest", type=str, help="CSV file to add prices to")
+    parser.add_argument("row", type=int, help="Row number to add to")
+    args = parser.parse_args()
+
+    categories_price = read_categories_price(csv_name=args.source)
+    edit_spreadsheet(categories_price=categories_price, spreadsheet_name=args.dest, row_number=args.row)
