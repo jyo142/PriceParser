@@ -1,5 +1,3 @@
-import fitz  # PyMuPDF
-import csv
 import pandas as pd
 from price_parser import Price
 
@@ -12,6 +10,7 @@ def read_categories_price(csv_name):
     print(result)
     return result
 
+ignore_columns = ["Lotto"]
 column_mapping = {
     "T-General Mercahnt": "T General Mercahnt",
     "Tax": "Taxable"
@@ -22,10 +21,20 @@ def edit_spreadsheet(categories_price, spreadsheet_name):
     # Iterate through the name_price_list and update values in row 23
     for item in categories_price:
         name = item["name"]
+        name_upper = name.upper()
         price = item["price"]
         
+        if name in ignore_columns:
+            print(f"Skipping {name} (in ignore list)")
+            continue
+
+        mapped_name = column_mapping.get(name)
+        if mapped_name:
+            name = mapped_name
+            name_upper = mapped_name.upper()
+
         # Case-insensitive matching: Convert both name and columns to uppercase
-        matching_columns = [col for col in df.columns if col.upper() == name.upper()]
+        matching_columns = [col for col in df.columns if col.upper() == name_upper]
         # If a matching column exists
         if matching_columns:
             column_name = matching_columns[0]  # Take the first match (if multiple matches, but unlikely)
@@ -36,18 +45,8 @@ def edit_spreadsheet(categories_price, spreadsheet_name):
             else:
                 print("Could not parse price.")
         else:
-            print("No matching column, check if there is a mapping")
-            # If no matching column, check if there's a mapping
-            mapped_name = column_mapping.get(name).upper()
-            if mapped_name and mapped_name in df.columns:
-                price_parsed = Price.fromstring(price)
-                if price_parsed.amount is not None:
-                    df.at[22, column_name] = float(price_parsed.amount)  # row 23 in CSV corresponds to index 22 in pandas
-                else:
-                    print("Could not parse price.")
-                print(f"Set price for {name} to {price} in mapped column {mapped_name}")
-            else:
-                print(f"No matching column or mapping for {name}, skipping...")
+            print("No matching column")
+
     # Save the updated file
     df.to_csv(spreadsheet_name, index=False)
 
